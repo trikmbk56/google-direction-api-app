@@ -2,16 +2,54 @@
 <script src="//cdn.rawgit.com/mahnunchik/markerclustererplus/master/dist/markerclusterer.min.js"></script>
 <script src='//cdn.rawgit.com/printercu/google-maps-utility-library-v3-read-only/master/infobox/src/infobox_packed.js' type='text/javascript'></script>
 
-<h1>Map --- <%= link_to "Add place", new_place_path %></h1>
+<h1><%= link_to "Add place", new_place_path %></h1>
+<div id="floating-panel">
+  <b>Start: </b>
+  <select id="start">
+    <% @places.each do |place| %>
+      <option long="<%= place.longitude %>" lat="<%= place.latitude %>"><%= place.address %></option>
+    <% end %>
+  </select>
+  <b>End: </b>
+  <select id="end">
+    <% @places.each do |place| %>
+      <option long="<%= place.longitude %>" lat="<%= place.latitude %>"><%= place.address %></option>
+    <% end %>
+  </select>
+</div>
 <div id="map-container">
   <div id="map-canvas"></div>
 </div>
 
 <script type="text/javascript">
-  handler = Gmaps.build('Google');
-  handler.buildMap({ provider: {}, internal: {id: 'map-canvas'}}, function(){
-    markers = handler.addMarkers(<%=raw @hash.to_json %>);
-    handler.bounds.extendWith(markers);
-    handler.fitMapToBounds();
+  var directionsDisplay = new google.maps.DirectionsRenderer();
+  var directionsService = new google.maps.DirectionsService();
+
+  function calcRoute() {
+    var startLong = $("#start").find(":selected").attr("long");
+    var startLat = $("#start").find(":selected").attr("lat");
+    var endLong = $("#end").find(":selected").attr("long");
+    var endLat = $("#end").find(":selected").attr("lat");
+    var origin      = new google.maps.LatLng(startLat, startLong);
+    var destination = new google.maps.LatLng(endLat, endLong);
+    var request = {
+        origin:      origin,
+        destination: destination,
+        travelMode:  google.maps.TravelMode.DRIVING
+    };
+    directionsService.route(request, function(response, status) {
+      if (status == google.maps.DirectionsStatus.OK) {
+        directionsDisplay.setDirections(response);
+      }
+    });
+  }
+
+  calcRoute();
+  $("#start").change(calcRoute);
+  $("#end").change(calcRoute);
+
+  var handler = Gmaps.build("Google");
+  handler.buildMap({ internal: {id: "map-canvas"}}, function(){
+    directionsDisplay.setMap(handler.getMap());
   });
 </script>
